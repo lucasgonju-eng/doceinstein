@@ -1,0 +1,32 @@
+name: Deploy Hostinger
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Deploy static app to Hostinger
+        uses: burnett01/rsync-deployments@7.0.2
+        with:
+          switches: >-
+            -avzr --delete
+            --exclude ".git/"
+            --exclude ".github/"
+            --exclude ".gitignore"
+            --exclude "supabase/"
+            --exclude "*.sql"
+            --exclude "README.txt"
+          path: ./
+          remote_path: ${{ secrets.HOSTINGER_REMOTE_PATH }}
+          remote_host: ${{ secrets.HOSTINGER_HOST }}
+          remote_port: ${{ secrets.HOSTINGER_PORT }}
+          remote_user: ${{ secrets.HOSTINGER_USER }}
+          remote_key: ${{ secrets.HOSTINGER_SSH_KEY }}
+
