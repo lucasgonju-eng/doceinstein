@@ -15,23 +15,25 @@ jobs:
       - name: Install lftp client
         run: sudo apt-get update && sudo apt-get install -y lftp
 
-      - name: Deploy static app to Hostinger via SFTP
+      - name: Deploy static app to Hostinger via FTP/SFTP
         env:
           HOSTINGER_HOST: ${{ secrets.HOSTINGER_HOST }}
           HOSTINGER_PORT: ${{ secrets.HOSTINGER_PORT }}
           HOSTINGER_USER: ${{ secrets.HOSTINGER_USER }}
           HOSTINGER_PASSWORD: ${{ secrets.HOSTINGER_PASSWORD }}
           HOSTINGER_REMOTE_PATH: ${{ secrets.HOSTINGER_REMOTE_PATH }}
+          HOSTINGER_PROTOCOL: ${{ secrets.HOSTINGER_PROTOCOL }}
         run: |
           test -n "$HOSTINGER_HOST" || (echo "Missing HOSTINGER_HOST" && exit 1)
           test -n "$HOSTINGER_PORT" || (echo "Missing HOSTINGER_PORT" && exit 1)
           test -n "$HOSTINGER_USER" || (echo "Missing HOSTINGER_USER" && exit 1)
           test -n "$HOSTINGER_PASSWORD" || (echo "Missing HOSTINGER_PASSWORD" && exit 1)
           test -n "$HOSTINGER_REMOTE_PATH" || (echo "Missing HOSTINGER_REMOTE_PATH" && exit 1)
-          lftp -u "$HOSTINGER_USER","$HOSTINGER_PASSWORD" "sftp://$HOSTINGER_HOST:$HOSTINGER_PORT" <<EOF
-          set sftp:auto-confirm yes
+          PROTOCOL="${HOSTINGER_PROTOCOL:-ftp}"
+          lftp -u "$HOSTINGER_USER","$HOSTINGER_PASSWORD" "${PROTOCOL}://$HOSTINGER_HOST:$HOSTINGER_PORT" <<EOF
           set cmd:fail-exit yes
           set ssl:verify-certificate no
+          set ftp:ssl-allow yes
           mirror -R --delete --verbose \
             --exclude-glob .git/ \
             --exclude-glob .github/ \
