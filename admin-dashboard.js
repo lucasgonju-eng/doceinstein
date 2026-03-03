@@ -37,7 +37,7 @@
   }
 
   function adminLoginUrl() {
-    return "login.html?modo=login&redirect=admin-dashboard.html";
+    return "login.html?modo=login&redirect=admin-dashboard.html&admin_only=1";
   }
 
   function stripFreshAdminLoginParam() {
@@ -829,7 +829,11 @@
     const isClicksignReturn = params.get("clicksign_signed") === "1";
 
     if (!hasFreshAdminLogin && !isClicksignReturn) {
-      await supabaseClient.auth.signOut();
+      try {
+        await supabaseClient.auth.signOut();
+      } catch (error) {
+        console.warn("Falha ao encerrar sessão ao iniciar acesso admin:", error);
+      }
       window.location.href = adminLoginUrl();
       return false;
     }
@@ -844,7 +848,11 @@
 
     const email = (user.email || "").toLowerCase();
     if (!ADMIN_EMAILS.has(email)) {
-      await supabaseClient.auth.signOut();
+      try {
+        await supabaseClient.auth.signOut();
+      } catch (error) {
+        console.warn("Falha ao encerrar sessão de usuário não autorizado no admin:", error);
+      }
       adminIdentityChip.textContent = "acesso não autorizado";
       setStatus("Somente diretor@einsteinhub.co e secretaria@einsteinhub.co podem acessar este painel.", "error");
       setTimeout(() => {

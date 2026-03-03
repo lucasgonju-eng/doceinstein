@@ -9,6 +9,7 @@
   const perfil = (profileFromPage || profileFromQuery || "aluno").toLowerCase();
   const redirectParam = params.get("redirect");
   const isAdminRedirectRequested = (redirectParam || "").startsWith("admin-dashboard.html");
+  const isAdminOnlyMode = isAdminRedirectRequested && params.get("admin_only") === "1";
 
   const ADMIN_EMAILS = new Set([
     "diretor@einsteinhub.co",
@@ -150,6 +151,51 @@
     setStatus("", "");
   }
 
+  function enforceAdminEmailOptions() {
+    if (!isAdminOnlyMode || !loginEmailInput) return;
+    const field = loginEmailInput.closest(".stitch-field");
+    if (!field) return;
+
+    loginEmailInput.type = "hidden";
+    loginEmailInput.required = false;
+
+    let select = document.getElementById("adminEmailSelect");
+    if (!select) {
+      select = document.createElement("select");
+      select.id = "adminEmailSelect";
+      select.required = true;
+      select.innerHTML = [
+        '<option value="">Selecione o e-mail administrativo...</option>',
+        `<option value="${Array.from(ADMIN_EMAILS)[0]}">${Array.from(ADMIN_EMAILS)[0]}</option>`,
+        `<option value="${Array.from(ADMIN_EMAILS)[1]}">${Array.from(ADMIN_EMAILS)[1]}</option>`
+      ].join("");
+      field.appendChild(select);
+    }
+
+    select.addEventListener("change", function () {
+      loginEmailInput.value = String(select.value || "").toLowerCase();
+    });
+  }
+
+  async function applyAdminZeroTrustEntry() {
+    if (!isAdminOnlyMode) return;
+    showLogin();
+    if (cadastroForm) cadastroForm.hidden = true;
+    if (btnVoltarCadastro) btnVoltarCadastro.hidden = true;
+    if (btnIrLogin) btnIrLogin.hidden = true;
+    if (pageTitle) pageTitle.textContent = "Área de Login da Administração";
+    if (pageSubtitle) {
+      pageSubtitle.textContent =
+        "Acesso seguro: esta área aceita apenas diretor@einsteinhub.co ou secretaria@einsteinhub.co.";
+    }
+    enforceAdminEmailOptions();
+    try {
+      await supabaseClient.auth.signOut();
+    } catch (error) {
+      console.warn("Falha ao limpar sessão prévia para entrada administrativa:", error);
+    }
+  }
+
   function showCadastro() {
     cadastroForm.hidden = false;
     loginForm.hidden = true;
@@ -161,6 +207,7 @@
   btnIrLogin?.addEventListener("click", showLogin);
   btnVoltarCadastro?.addEventListener("click", showCadastro);
   ensureLogoutButtons();
+  applyAdminZeroTrustEntry();
 
   if (params.get("modo") === "login") showLogin();
 
@@ -219,6 +266,11 @@
 
     if (!email || !senha) {
       setStatus("Informe e-mail e senha para entrar.", "error");
+      return;
+    }
+
+    if (isAdminOnlyMode && !ADMIN_EMAILS.has(email)) {
+      setStatus("Use apenas diretor@einsteinhub.co ou secretaria@einsteinhub.co.", "error");
       return;
     }
 
