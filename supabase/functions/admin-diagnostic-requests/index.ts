@@ -14,6 +14,111 @@ function adminClient() {
   return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
+function decodeSafe(value: string) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+function normalizeStoragePath(rawValue: unknown, bucketName: string) {
+  let normalized = String(rawValue || "").trim();
+  if (!normalized) return "";
+
+  if (normalized.startsWith("{") && normalized.endsWith("}")) {
+    try {
+      const parsed = JSON.parse(normalized) as Record<string, unknown>;
+      normalized = String(parsed?.path || parsed?.url || parsed?.signedUrl || normalized);
+    } catch {
+      // mantém valor original
+    }
+  }
+
+  normalized = normalized.split("#")[0].split("?")[0].trim();
+  normalized = decodeSafe(normalized);
+
+  if (/^https?:\/\//i.test(normalized)) {
+    try {
+      const parsedUrl = new URL(normalized);
+      normalized = decodeSafe(parsedUrl.pathname || "");
+    } catch {
+      // mantém valor original
+    }
+  }
+
+  normalized = normalized.replace(/^\/+/, "");
+
+  const markers = [
+    `storage/v1/object/sign/${bucketName}/`,
+    `storage/v1/object/public/${bucketName}/`,
+    `storage/v1/object/authenticated/${bucketName}/`,
+    `storage/v1/object/${bucketName}/`,
+    `${bucketName}/`
+  ];
+
+  for (const marker of markers) {
+    const markerIndex = normalized.indexOf(marker);
+    if (markerIndex >= 0) {
+      normalized = normalized.slice(markerIndex + marker.length);
+      break;
+    }
+  }
+
+  return normalized.replace(/^\/+/, "").trim();
+}
+
+async function resolveDocumentSignedUrl(
+  supabase: ReturnType<typeof adminClient>,
+  requestRow: Record<string, unknown>,
+  documentKind: "id" | "produced"
+) {
+  const bucketFallbacks = ["id_autorizacao_enviados", "produzidos-assinados"];
+  const rawPath = documentKind === "produced"
+    ? String(((requestRow.payload as Record<string, unknown> | null)?.produced_document_path) || "")
+    : String(requestRow.id_document_path || "");
+
+  if (!rawPath) return "";
+
+  for (const bucketName of bucketFallbacks) {
+    const candidates = Array.from(new Set([
+      normalizeStoragePath(rawPath, bucketName),
+      normalizeStoragePath(decodeSafe(rawPath), bucketName),
+      rawPath.replace(/^\/+/, "").split("?")[0].split("#")[0].trim()
+    ].filter(Boolean)));
+
+    for (const candidate of candidates) {
+      const { data, error } = await supabase.storage
+        .from(bucketName)
+        .createSignedUrl(candidate, 60 * 20);
+      if (!error && data?.signedUrl) return data.signedUrl;
+    }
+  }
+
+  const maybeUuid = rawPath.trim();
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(maybeUuid)) {
+    const { data: objectRow } = await supabase
+      .schema("storage")
+      .from("objects")
+      .select("bucket_id,name")
+      .eq("id", maybeUuid)
+      .limit(1)
+      .maybeSingle();
+
+    const bucketId = String((objectRow as Record<string, unknown> | null)?.bucket_id || "");
+    const objectName = String((objectRow as Record<string, unknown> | null)?.name || "");
+    if (bucketId && objectName) {
+      const { data, error } = await supabase.storage
+        .from(bucketId)
+        .createSignedUrl(objectName, 60 * 20);
+      if (!error && data?.signedUrl) return data.signedUrl;
+    }
+  }
+
+  if (/^https?:\/\//i.test(rawPath)) return rawPath;
+  return "";
+}
+
 async function sendReadyNotification(requestRow: Record<string, unknown>) {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   if (!supabaseUrl) return;
@@ -86,6 +191,7 @@ serve(async (req) => {
         role?: "admin" | "secretaria";
         new_status?: string;
         transition_options?: Record<string, unknown>;
+        document_kind?: "id" | "produced";
       };
       if (!body.action || !body.request_id) {
         return new Response(JSON.stringify({ ok: false, error: "Payload inválido." }), {
@@ -201,6 +307,25 @@ serve(async (req) => {
         });
 
         return new Response(JSON.stringify({ ok: true, request: updatedRow }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
+      if (body.action === "resolve_document_url") {
+        const documentKind = body.document_kind === "produced" ? "produced" : "id";
+        const signedUrl = await resolveDocumentSignedUrl(
+          supabase,
+          row as Record<string, unknown>,
+          documentKind
+        );
+        if (!signedUrl) {
+          return new Response(JSON.stringify({ ok: false, error: "Documento não encontrado para abertura." }), {
+            status: 404,
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
+          });
+        }
+        return new Response(JSON.stringify({ ok: true, signed_url: signedUrl }), {
           status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" }
         });

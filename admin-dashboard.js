@@ -252,7 +252,9 @@
   async function openIdDocument(requestRow) {
     await openStorageDocument(
       requestRow.id_document_path,
-      "Nenhum documento de identificação foi enviado para este pedido."
+      "Nenhum documento de identificação foi enviado para este pedido.",
+      requestRow.id,
+      "id"
     );
   }
 
@@ -260,11 +262,13 @@
     const producedPath = requestRow.payload?.produced_document_path;
     await openStorageDocument(
       producedPath,
-      "Nenhum documento final foi enviado na etapa de produção para este pedido."
+      "Nenhum documento final foi enviado na etapa de produção para este pedido.",
+      requestRow.id,
+      "produced"
     );
   }
 
-  async function openStorageDocument(path, emptyMessage) {
+  async function openStorageDocument(path, emptyMessage, requestId, documentKind) {
     if (!path) {
       setStatus(emptyMessage, "error");
       return;
@@ -350,6 +354,33 @@
       window.open(rawPath, "_blank", "noopener,noreferrer");
       setStatus("Abrindo link direto do documento.", "ok");
       return;
+    }
+
+    // Fallback service-role para caminhos legados difíceis de resolver no client.
+    try {
+      const headers = await functionAuthHeaders();
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/admin-diagnostic-requests`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          action: "resolve_document_url",
+          request_id: requestId,
+          document_kind: documentKind
+        })
+      });
+      const rawBody = await response.text();
+      let parsedBody = {};
+      try {
+        parsedBody = rawBody ? JSON.parse(rawBody) : {};
+      } catch {
+        parsedBody = { raw: rawBody };
+      }
+      if (response.ok && parsedBody?.ok && parsedBody?.signed_url) {
+        window.open(parsedBody.signed_url, "_blank", "noopener,noreferrer");
+        return;
+      }
+    } catch (error) {
+      console.warn("Falha no fallback de abertura de documento:", error);
     }
 
     setStatus("Não foi possível abrir o documento: Object not found ou caminho inválido.", "error");
