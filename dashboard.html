@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>DOC-Einstein | Dashboard</title>
+  <link rel="icon" href="data:," />
+  <link rel="stylesheet" href="stitch/welcome.css" />
+</head>
+<body class="stitch-welcome-page stitch-form-page">
+  <main class="stitch-subpage-root">
+    <img class="stitch-subpage-image" src="assets/stitch/screen.png?v=1" alt="" aria-hidden="true" />
+    <section class="stitch-subpage-panel">
+      <h1 class="stitch-subpage-title">Dashboard do Usuário</h1>
+      <p class="stitch-subpage-text">Olá, <strong id="nomeAluno">Aluno</strong>. Faça seu requerimento e acompanhe cada etapa.</p>
+      <span class="stitch-subpage-chip" id="perfilChip">perfil não informado</span>
+      <p class="stitch-subpage-text stitch-attention-text">Primeira via gratuita. Segunda via é paga.</p>
+
+      <form id="requerimentoForm" class="stitch-form" novalidate>
+        <div class="stitch-field">
+          <label for="documentoSelect">Selecionar documento para requerimento</label>
+          <select id="documentoSelect" name="documentoSelect" required>
+            <option value="">Selecione...</option>
+            <option value="declaracao_transferencia">Declaração de Transferência</option>
+            <option value="declaracao_frequencia">Declaração de Frequência</option>
+            <option value="historico_certificado">Histórico Escolar + Certificado</option>
+            <option value="outros">Outros</option>
+          </select>
+        </div>
+
+        <div class="stitch-field" id="outrosField" hidden>
+          <label for="documentoOutro">Qual documento?</label>
+          <input id="documentoOutro" name="documentoOutro" type="text" placeholder="Descreva o documento solicitado" />
+        </div>
+
+        <div class="stitch-field">
+          <label for="cpf">CPF</label>
+          <input id="cpf" name="cpf" type="text" inputmode="numeric" placeholder="Somente números ou com pontuação" required />
+        </div>
+
+        <div class="stitch-field">
+          <label for="rg">RG</label>
+          <input id="rg" name="rg" type="text" placeholder="Informe o RG" required />
+        </div>
+
+        <div class="stitch-field">
+          <label for="idDocumento">Documento de Identificação Oficial (PDF ou foto legível)</label>
+          <input id="idDocumento" name="idDocumento" type="file" accept=".pdf,image/*" required />
+        </div>
+
+        <div class="stitch-subpage-actions">
+          <button class="stitch-btn stitch-btn-primary" type="submit">Registrar requerimento</button>
+          <button class="stitch-btn stitch-btn-ghost" type="button" id="btnSair">Sair / trocar conta</button>
+          <a class="stitch-btn stitch-btn-ghost" href="index.html">Voltar para a Home</a>
+        </div>
+      </form>
+
+      <p id="statusMsg" class="stitch-status" aria-live="polite"></p>
+
+      <section class="stitch-timeline-card" aria-label="Linha do tempo do requerimento">
+        <h2 class="stitch-subpage-subtitle">Linha do tempo do card</h2>
+        <p class="stitch-subpage-text" id="timelineProtocol">Nenhum requerimento registrado ainda.</p>
+        <ol class="stitch-timeline" id="timelineList">
+          <li class="timeline-step" data-step="requerimento_documento">
+            <span class="timeline-marker" aria-hidden="true"></span>
+            <div class="timeline-copy">
+              <strong>Requerimento de Documento</strong>
+              <small>Pedido inicial registrado no sistema.</small>
+            </div>
+          </li>
+          <li class="timeline-step" data-step="envio_documento_identificacao">
+            <span class="timeline-marker" aria-hidden="true"></span>
+            <div class="timeline-copy">
+              <strong>Envio de Documento de Identificação</strong>
+              <small>Documento oficial enviado para validação.</small>
+            </div>
+          </li>
+          <li class="timeline-step" data-step="requerimento_em_analise">
+            <span class="timeline-marker" aria-hidden="true"></span>
+            <div class="timeline-copy">
+              <strong>Requerimento em Análise</strong>
+              <small>Secretaria analisa identidade e tipo de via.</small>
+            </div>
+          </li>
+          <li class="timeline-step" data-step="documento_em_producao">
+            <span class="timeline-marker" aria-hidden="true"></span>
+            <div class="timeline-copy">
+              <strong>Documento em produção</strong>
+              <small>Documento solicitado está em produção.</small>
+            </div>
+          </li>
+          <li class="timeline-step" data-step="documento_pronto">
+            <span class="timeline-marker" aria-hidden="true"></span>
+            <div class="timeline-copy">
+              <strong>Documento Pronto</strong>
+              <small>Documento finalizado e aguardando entrega digital.</small>
+            </div>
+          </li>
+          <li class="timeline-step" data-step="documento_digital_enviado_email">
+            <span class="timeline-marker" aria-hidden="true"></span>
+            <div class="timeline-copy">
+              <strong>Documento Digital Enviado por E-mail</strong>
+              <small>Versão digital assinada enviada ao e-mail cadastrado.</small>
+            </div>
+          </li>
+          <li class="timeline-step" data-step="documento_fisico_disponivel_secretaria">
+            <span class="timeline-marker" aria-hidden="true"></span>
+            <div class="timeline-copy">
+              <strong>Documento Físico Disponível na Secretaria</strong>
+              <small>Retirada presencial liberada na secretaria.</small>
+            </div>
+          </li>
+        </ol>
+      </section>
+    </section>
+    <p class="stitch-subpage-footer">Colégio Einstein © 2026</p>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="dashboard.js"></script>
+</body>
+</html>

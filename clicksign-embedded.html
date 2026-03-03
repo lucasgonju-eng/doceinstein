@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Assinatura Clicksign</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: auto;
+      background: #0b1433;
+      color: #e8eefc;
+      font-family: Arial, sans-serif;
+    }
+    #status {
+      padding: 12px 16px;
+      font-size: 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.15);
+      background: rgba(7, 12, 32, 0.9);
+    }
+    #container {
+      width: 100%;
+      min-height: calc(100vh - 46px);
+      height: calc(100vh - 46px);
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+    #backToSaasBtn {
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      z-index: 99999;
+      border: 0;
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #0c1a42;
+      background: #d8e5ff;
+      cursor: pointer;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    }
+  </style>
+  <script src="https://cdn-public-library.clicksign.com/embedded/embedded.min-2.1.0.js"></script>
+</head>
+<body>
+  <div id="status">Carregando assinatura incorporada...</div>
+  <div id="container"></div>
+  <button id="backToSaasBtn" type="button">Ja assinei - Voltar ao painel</button>
+  <script src="clicksign-embedded.js"></script>
+</body>
+</html>

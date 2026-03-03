@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>DOC-Einstein | Professor</title>
+  <link rel="stylesheet" href="stitch/welcome.css" />
+</head>
+<body class="stitch-welcome-page stitch-form-page" data-profile="professor">
+  <main class="stitch-subpage-root">
+    <img class="stitch-subpage-image" src="assets/stitch/screen.png?v=1" alt="" aria-hidden="true" />
+    <section class="stitch-subpage-panel">
+      <h1 class="stitch-subpage-title">Área de Cadastro</h1>
+      <p class="stitch-subpage-text">Preencha seus dados para receber o magic link no e-mail.</p>
+      <span class="stitch-subpage-chip" id="perfilChip">professor</span>
+
+      <form id="cadastroForm" class="stitch-form" novalidate>
+        <div class="stitch-field"><label for="nomeCompleto">Nome completo</label><input id="nomeCompleto" name="nomeCompleto" type="text" autocomplete="name" required /></div>
+        <div class="stitch-field"><label for="cpf">CPF</label><input id="cpf" name="cpf" type="text" inputmode="numeric" placeholder="000.000.000-00" required /></div>
+        <div class="stitch-field"><label for="matricula">Número de matrícula (opcional)</label><input id="matricula" name="matricula" type="text" inputmode="numeric" /></div>
+        <div class="stitch-field"><label for="whatsapp">WhatsApp</label><input id="whatsapp" name="whatsapp" type="tel" inputmode="tel" placeholder="(00) 00000-0000" required /></div>
+        <div class="stitch-field"><label for="email">E-mail (será seu login)</label><input id="email" name="email" type="email" autocomplete="email" required /></div>
+        <div class="stitch-subpage-actions">
+          <button class="stitch-btn stitch-btn-primary" type="submit" id="btnCadastro">Continuar cadastro</button>
+          <button class="stitch-btn stitch-btn-ghost" type="button" id="btnIrLogin">Já sou cadastrado</button>
+        </div>
+      </form>
+
+      <form id="loginForm" class="stitch-form" novalidate hidden>
+        <div class="stitch-field"><label for="loginEmail">E-mail</label><input id="loginEmail" name="loginEmail" type="email" autocomplete="email" required /></div>
+        <div class="stitch-field"><label for="loginSenha">Senha</label><input id="loginSenha" name="loginSenha" type="password" autocomplete="current-password" required /></div>
+        <div class="stitch-subpage-actions">
+          <button class="stitch-btn stitch-btn-primary" type="submit" id="btnLogin">Entrar</button>
+          <button class="stitch-btn stitch-btn-ghost" type="button" id="btnVoltarCadastro">Voltar ao cadastro</button>
+        </div>
+      </form>
+      <p id="statusMsg" class="stitch-status" aria-live="polite"></p>
+    </section>
+    <p class="stitch-subpage-footer">Colégio Einstein © 2026</p>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="cadastro.js"></script>
+</body>
+</html>

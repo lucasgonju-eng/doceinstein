@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>DOC-Einstein | Criar senha</title>
+  <link rel="stylesheet" href="stitch/welcome.css" />
+</head>
+<body class="stitch-welcome-page stitch-form-page" data-profile="">
+  <main class="stitch-subpage-root">
+    <img class="stitch-subpage-image" src="assets/stitch/screen.png?v=1" alt="" aria-hidden="true" />
+    <section class="stitch-subpage-panel">
+      <h1 class="stitch-subpage-title">Criar senha</h1>
+      <p class="stitch-subpage-text">Defina sua senha e confirme para entrar no dashboard.</p>
+      <span class="stitch-subpage-chip" id="perfilChip">perfil não informado</span>
+
+      <form id="novaSenhaForm" class="stitch-form" novalidate>
+        <div class="stitch-field">
+          <label for="senha">Senha</label>
+          <input id="senha" type="password" autocomplete="new-password" required />
+        </div>
+        <div class="stitch-field">
+          <label for="confirmarSenha">Confirmar senha</label>
+          <input id="confirmarSenha" type="password" autocomplete="new-password" required />
+        </div>
+        <div class="stitch-subpage-actions">
+          <button class="stitch-btn stitch-btn-primary" type="submit" id="btnCriarSenha">Confirmar e entrar</button>
+          <a class="stitch-btn stitch-btn-ghost" href="login.html?modo=login">Ir para login</a>
+        </div>
+      </form>
+      <p id="statusMsg" class="stitch-status" aria-live="polite"></p>
+    </section>
+    <p class="stitch-subpage-footer">Colégio Einstein © 2026</p>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="nova-senha.js"></script>
+</body>
+</html>

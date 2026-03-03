@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>DOC-Einstein | Administração</title>
+  <link rel="icon" href="data:," />
+  <link rel="stylesheet" href="stitch/welcome.css" />
+</head>
+<body class="stitch-welcome-page stitch-form-page">
+  <main class="stitch-subpage-root">
+    <img class="stitch-subpage-image" src="assets/stitch/screen.png?v=1" alt="" aria-hidden="true" />
+    <section class="stitch-subpage-panel">
+      <h1 class="stitch-subpage-title">Painel de Administração</h1>
+      <p class="stitch-subpage-text">Gerencie os requerimentos, assinaturas e pendências físicas.</p>
+      <span class="stitch-subpage-chip" id="adminIdentityChip">validação de acesso...</span>
+
+      <div class="stitch-subpage-actions">
+        <button class="stitch-btn stitch-btn-primary" type="button" id="btnAtualizarAdmin">Atualizar lista</button>
+        <button class="stitch-btn stitch-btn-ghost" type="button" id="btnSairAdmin">Sair</button>
+        <a class="stitch-btn stitch-btn-ghost" href="index.html">Voltar para a Home</a>
+      </div>
+
+      <p id="adminStatusMsg" class="stitch-status" aria-live="polite"></p>
+
+      <nav class="stitch-admin-tabs" aria-label="Abas administrativas">
+        <button type="button" class="stitch-admin-tab is-active" data-tab-target="pedidos">Pedidos</button>
+        <button type="button" class="stitch-admin-tab" data-tab-target="producao">Documentos em Produção</button>
+        <button type="button" class="stitch-admin-tab" data-tab-target="assinaturas">Assinaturas Pendentes</button>
+        <button type="button" class="stitch-admin-tab" data-tab-target="pronto">Documento Pronto</button>
+        <button type="button" class="stitch-admin-tab" data-tab-target="fisicos">Pendência de Documentos Físicos</button>
+      </nav>
+
+      <section class="stitch-admin-panel" data-tab-panel="pedidos">
+        <p class="stitch-subpage-text">Valide identidade, confirme via e encaminhe para produção.</p>
+        <div id="pedidosList" class="stitch-admin-list"></div>
+      </section>
+
+      <section class="stitch-admin-panel" data-tab-panel="producao" hidden>
+        <p class="stitch-subpage-text">Suba o PDF do documento produzido e encaminhe para assinaturas pendentes.</p>
+        <div id="producaoList" class="stitch-admin-list"></div>
+      </section>
+
+      <section class="stitch-admin-panel" data-tab-panel="assinaturas" hidden>
+        <p class="stitch-subpage-text">Acompanhe as assinaturas via Clicksign (admin + secretaria).</p>
+        <div id="assinaturasList" class="stitch-admin-list"></div>
+      </section>
+
+      <section class="stitch-admin-panel" data-tab-panel="pronto" hidden>
+        <p class="stitch-subpage-text">Após 2 assinaturas confirmadas, libere manualmente o envio digital ao usuário.</p>
+        <div id="prontoList" class="stitch-admin-list"></div>
+      </section>
+
+      <section class="stitch-admin-panel" data-tab-panel="fisicos" hidden>
+        <p class="stitch-subpage-text">Confirme quando o documento físico estiver disponível na secretaria.</p>
+        <div id="fisicosList" class="stitch-admin-list"></div>
+      </section>
+    </section>
+    <p class="stitch-subpage-footer">Colégio Einstein © 2026</p>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="admin-dashboard.js"></script>
+</body>
+</html>
