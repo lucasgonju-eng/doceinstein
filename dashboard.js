@@ -441,7 +441,7 @@
 
   btnSair.addEventListener("click", async function () {
     await supabaseClient.auth.signOut();
-    window.location.href = "login.html?modo=login";
+    window.location.href = "index.html";
   });
 
   markTimelineFromRequest(null);

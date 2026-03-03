@@ -83,23 +83,31 @@
 
   async function handleGlobalSignOut() {
     await supabaseClient.auth.signOut();
-    window.location.href = "login.html?modo=login";
+    window.location.href = "index.html";
+  }
+
+  function bindGlobalSignoutButton(button) {
+    if (!button || button.dataset.signoutBound === "1") return;
+    button.dataset.signoutBound = "1";
+    button.addEventListener("click", function () {
+      setStatus("Saindo da conta...", "");
+      handleGlobalSignOut();
+    });
   }
 
   function ensureLogoutButtons() {
     const actionRows = Array.from(document.querySelectorAll(".stitch-subpage-actions"));
     actionRows.forEach((row) => {
-      if (row.querySelector('[data-global-signout="1"]')) return;
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "stitch-btn stitch-btn-ghost";
-      button.dataset.globalSignout = "1";
-      button.textContent = "Sair";
-      button.addEventListener("click", function () {
-        setStatus("Saindo da conta...", "");
-        handleGlobalSignOut();
-      });
-      row.appendChild(button);
+      let button = row.querySelector('[data-global-signout="1"]');
+      if (!button) {
+        button = document.createElement("button");
+        button.type = "button";
+        button.className = "stitch-btn stitch-btn-ghost";
+        button.dataset.globalSignout = "1";
+        button.textContent = "Sair";
+        row.appendChild(button);
+      }
+      bindGlobalSignoutButton(button);
     });
   }
 

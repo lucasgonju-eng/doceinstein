@@ -29,22 +29,31 @@
 
   async function handleSignOut() {
     await supabaseClient.auth.signOut();
-    window.location.href = "login.html?modo=login";
+    window.location.href = "index.html";
   }
 
-  function ensureLogoutButton() {
-    const actions = form?.querySelector(".stitch-subpage-actions");
-    if (!actions || actions.querySelector('[data-global-signout="1"]')) return;
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "stitch-btn stitch-btn-ghost";
-    button.dataset.globalSignout = "1";
-    button.textContent = "Sair";
+  function bindSignOutButton(button) {
+    if (!button || button.dataset.signoutBound === "1") return;
+    button.dataset.signoutBound = "1";
     button.addEventListener("click", function () {
       setStatus("Saindo da conta...", "");
       handleSignOut();
     });
-    actions.appendChild(button);
+  }
+
+  function ensureLogoutButton() {
+    const actions = form?.querySelector(".stitch-subpage-actions");
+    if (!actions) return;
+    let button = actions.querySelector('[data-global-signout="1"]');
+    if (!button) {
+      button = document.createElement("button");
+      button.type = "button";
+      button.className = "stitch-btn stitch-btn-ghost";
+      button.dataset.globalSignout = "1";
+      button.textContent = "Sair";
+      actions.appendChild(button);
+    }
+    bindSignOutButton(button);
   }
 
   async function ensureSession() {

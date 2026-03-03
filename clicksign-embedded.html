@@ -42,12 +42,28 @@
       cursor: pointer;
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
     }
+    #logoutToLpBtn {
+      position: fixed;
+      left: 16px;
+      bottom: 16px;
+      z-index: 99999;
+      border: 0;
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #0c1a42;
+      background: #ffffff;
+      text-decoration: none;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    }
   </style>
   <script src="https://cdn-public-library.clicksign.com/embedded/embedded.min-2.1.0.js"></script>
 </head>
 <body>
   <div id="status">Carregando assinatura incorporada...</div>
   <div id="container"></div>
+  <a id="logoutToLpBtn" href="index.html">Sair</a>
   <button id="backToSaasBtn" type="button">Ja assinei - Voltar ao painel</button>
   <script src="clicksign-embedded.js"></script>
 </body>
