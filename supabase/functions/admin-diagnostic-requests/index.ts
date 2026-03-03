@@ -196,8 +196,107 @@ serve(async (req) => {
         produced_document_mime?: string;
         produced_document_base64?: string;
       };
-      if (!body.action || !body.request_id) {
+      if (!body.action) {
         return new Response(JSON.stringify({ ok: false, error: "Payload inválido." }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
+      if (body.action === "purge_all_test_data") {
+        const { data: rows, error: listError } = await supabase
+          .from("lp_document_requests")
+          .select("id,id_document_path,payload");
+        if (listError) throw new Error(`Falha ao listar pedidos para limpeza: ${listError.message}`);
+
+        const requestRows = (rows || []) as Array<Record<string, unknown>>;
+        const requestIds = requestRows
+          .map((item) => String(item.id || "").trim())
+          .filter(Boolean);
+
+        const storagePaths = new Set<string>();
+        for (const item of requestRows) {
+          const idPath = String(item.id_document_path || "").trim();
+          if (idPath) storagePaths.add(idPath);
+
+          const payload = (item.payload || {}) as Record<string, unknown>;
+          const producedPath = String(payload.produced_document_path || "").trim();
+          if (producedPath) storagePaths.add(producedPath);
+
+          const clicksign = (payload.clicksign || {}) as Record<string, unknown>;
+          const signedPath = String(clicksign.signed_document_path || "").trim();
+          if (signedPath) storagePaths.add(signedPath);
+        }
+
+        let deletedHistory = 0;
+        let deletedEmails = 0;
+        let deletedRequests = 0;
+        let deletedStorage = 0;
+
+        if (requestIds.length) {
+          const historyDelete = await supabase
+            .from("lp_request_status_history")
+            .delete()
+            .in("request_id", requestIds)
+            .select("id");
+          if (historyDelete.error) {
+            throw new Error(`Falha ao limpar histórico: ${historyDelete.error.message}`);
+          }
+          deletedHistory = Array.isArray(historyDelete.data) ? historyDelete.data.length : 0;
+
+          const emailDelete = await supabase
+            .from("lp_email_event_logs")
+            .delete()
+            .in("request_id", requestIds)
+            .select("id");
+          if (emailDelete.error) {
+            throw new Error(`Falha ao limpar logs de e-mail: ${emailDelete.error.message}`);
+          }
+          deletedEmails = Array.isArray(emailDelete.data) ? emailDelete.data.length : 0;
+
+          const requestsDelete = await supabase
+            .from("lp_document_requests")
+            .delete()
+            .in("id", requestIds)
+            .select("id");
+          if (requestsDelete.error) {
+            throw new Error(`Falha ao limpar pedidos: ${requestsDelete.error.message}`);
+          }
+          deletedRequests = Array.isArray(requestsDelete.data) ? requestsDelete.data.length : 0;
+        }
+
+        const allPaths = Array.from(storagePaths).filter(Boolean);
+        if (allPaths.length) {
+          const chunkSize = 100;
+          for (let i = 0; i < allPaths.length; i += chunkSize) {
+            const chunk = allPaths.slice(i, i + chunkSize);
+            const removeResult = await supabase.storage
+              .from("id_autorizacao_enviados")
+              .remove(chunk);
+            if (removeResult.error) {
+              console.error("Falha parcial ao remover objetos do storage:", removeResult.error.message);
+              continue;
+            }
+            deletedStorage += Array.isArray(removeResult.data) ? removeResult.data.length : 0;
+          }
+        }
+
+        return new Response(JSON.stringify({
+          ok: true,
+          purged: {
+            requests: deletedRequests,
+            history: deletedHistory,
+            email_logs: deletedEmails,
+            storage_objects: deletedStorage
+          }
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
+      if (!body.request_id) {
+        return new Response(JSON.stringify({ ok: false, error: "request_id é obrigatório para esta ação." }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
