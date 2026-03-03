@@ -49,6 +49,17 @@
     return /^[a-zA-Z0-9._-]+\.html(\?.*)?$/.test(value);
   }
 
+  function withFreshAdminLoginFlag(localPath) {
+    if (!localPath || !localPath.startsWith("admin-dashboard.html")) return localPath;
+    try {
+      const parsed = new URL(localPath, window.location.origin);
+      parsed.searchParams.set("fresh_admin_login", "1");
+      return `${parsed.pathname.replace(/^\/+/, "")}${parsed.search}`;
+    } catch {
+      return "admin-dashboard.html?fresh_admin_login=1";
+    }
+  }
+
   function resolvePostLoginRedirect(userEmail, userProfile) {
     const normalizedEmail = (userEmail || "").toLowerCase();
     const isAdminUser = ADMIN_EMAILS.has(normalizedEmail);
@@ -58,14 +69,38 @@
 
     // Admin pode navegar para dashboard comum, mas o destino padrão dele é admin-dashboard.
     if (isAdminUser) {
-      if (safeRedirect && (redirectIsAdmin || redirectIsUser)) return safeRedirect;
-      return "admin-dashboard.html";
+      if (safeRedirect && (redirectIsAdmin || redirectIsUser)) {
+        return withFreshAdminLoginFlag(safeRedirect);
+      }
+      return "admin-dashboard.html?fresh_admin_login=1";
     }
 
     // Usuário comum nunca entra por redirect administrativo.
     if (redirectIsAdmin) return dashboardUrl(userProfile);
     if (safeRedirect && redirectIsUser) return safeRedirect;
     return dashboardUrl(userProfile);
+  }
+
+  async function handleGlobalSignOut() {
+    await supabaseClient.auth.signOut();
+    window.location.href = "login.html?modo=login";
+  }
+
+  function ensureLogoutButtons() {
+    const actionRows = Array.from(document.querySelectorAll(".stitch-subpage-actions"));
+    actionRows.forEach((row) => {
+      if (row.querySelector('[data-global-signout="1"]')) return;
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "stitch-btn stitch-btn-ghost";
+      button.dataset.globalSignout = "1";
+      button.textContent = "Sair";
+      button.addEventListener("click", function () {
+        setStatus("Saindo da conta...", "");
+        handleGlobalSignOut();
+      });
+      row.appendChild(button);
+    });
   }
 
   function setStatus(message, type) {
@@ -113,6 +148,7 @@
 
   btnIrLogin?.addEventListener("click", showLogin);
   btnVoltarCadastro?.addEventListener("click", showCadastro);
+  ensureLogoutButtons();
 
   if (params.get("modo") === "login") showLogin();
 

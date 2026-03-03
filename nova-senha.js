@@ -27,6 +27,26 @@
     return `${appOrigin()}/dashboard.html?perfil=${encodeURIComponent(profile || "aluno")}`;
   }
 
+  async function handleSignOut() {
+    await supabaseClient.auth.signOut();
+    window.location.href = "login.html?modo=login";
+  }
+
+  function ensureLogoutButton() {
+    const actions = form?.querySelector(".stitch-subpage-actions");
+    if (!actions || actions.querySelector('[data-global-signout="1"]')) return;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "stitch-btn stitch-btn-ghost";
+    button.dataset.globalSignout = "1";
+    button.textContent = "Sair";
+    button.addEventListener("click", function () {
+      setStatus("Saindo da conta...", "");
+      handleSignOut();
+    });
+    actions.appendChild(button);
+  }
+
   async function ensureSession() {
     const sessionData = await supabaseClient.auth.getSession();
     if (sessionData.data.session) return sessionData.data.session;
@@ -44,6 +64,8 @@
     }
     return null;
   }
+
+  ensureLogoutButton();
 
   form.addEventListener("submit", async function (event) {
     event.preventDefault();

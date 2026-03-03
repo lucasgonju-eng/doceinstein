@@ -24,7 +24,6 @@
 
   const requestsById = new Map();
   let adminUser = null;
-  let adminDebugLogEl = null;
 
   function setStatus(message, type) {
     if (!statusMsg) return;
@@ -33,58 +32,20 @@
     if (type) statusMsg.classList.add(type);
   }
 
-  function ensureDebugLog() {
-    if (adminDebugLogEl) return adminDebugLogEl;
-    const container = document.createElement("details");
-    container.id = "adminDebugLog";
-    container.open = true;
-    container.style.position = "fixed";
-    container.style.right = "12px";
-    container.style.bottom = "12px";
-    container.style.width = "min(560px, calc(100vw - 24px))";
-    container.style.maxHeight = "40vh";
-    container.style.overflow = "auto";
-    container.style.zIndex = "99999";
-    container.style.padding = "8px";
-    container.style.borderRadius = "10px";
-    container.style.background = "rgba(8, 14, 35, 0.96)";
-    container.style.border = "1px solid rgba(255,255,255,0.25)";
-    container.style.color = "#dbe7ff";
-    container.style.font = "12px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace";
-
-    const title = document.createElement("summary");
-    title.textContent = "Debug temporário da assinatura";
-    title.style.cursor = "pointer";
-    title.style.fontWeight = "700";
-    title.style.marginBottom = "6px";
-    container.appendChild(title);
-
-    const log = document.createElement("pre");
-    log.style.whiteSpace = "pre-wrap";
-    log.style.margin = "0";
-    log.style.maxHeight = "30vh";
-    log.style.overflow = "auto";
-    log.textContent = "[debug] painel iniciado\n";
-    container.appendChild(log);
-
-    document.body.appendChild(container);
-    adminDebugLogEl = log;
-    return adminDebugLogEl;
+  function debugLog(_step, _payload) {
+    // Debug visual removido para produção.
   }
 
-  function debugLog(step, payload) {
-    const log = ensureDebugLog();
-    const stamp = new Date().toLocaleTimeString("pt-BR");
-    let content = "";
-    if (payload !== undefined) {
-      try {
-        content = ` ${JSON.stringify(payload, null, 2)}`;
-      } catch {
-        content = ` ${String(payload)}`;
-      }
-    }
-    log.textContent += `[${stamp}] ${step}${content}\n`;
-    log.scrollTop = log.scrollHeight;
+  function adminLoginUrl() {
+    return "login.html?modo=login&redirect=admin-dashboard.html";
+  }
+
+  function stripFreshAdminLoginParam() {
+    const current = new URL(window.location.href);
+    if (!current.searchParams.has("fresh_admin_login")) return;
+    current.searchParams.delete("fresh_admin_login");
+    const nextUrl = current.pathname + (current.search ? current.search : "");
+    window.history.replaceState({}, "", nextUrl);
   }
 
   function escapeHtml(value) {
@@ -863,20 +824,31 @@
   }
 
   async function validateAdminAccess() {
+    const params = new URLSearchParams(window.location.search);
+    const hasFreshAdminLogin = params.get("fresh_admin_login") === "1";
+    const isClicksignReturn = params.get("clicksign_signed") === "1";
+
+    if (!hasFreshAdminLogin && !isClicksignReturn) {
+      await supabaseClient.auth.signOut();
+      window.location.href = adminLoginUrl();
+      return false;
+    }
+
     const { data } = await supabaseClient.auth.getSession();
     const user = data.session?.user;
 
     if (!user) {
-      window.location.href = "login.html?modo=login&redirect=admin-dashboard.html";
+      window.location.href = adminLoginUrl();
       return false;
     }
 
     const email = (user.email || "").toLowerCase();
     if (!ADMIN_EMAILS.has(email)) {
+      await supabaseClient.auth.signOut();
       adminIdentityChip.textContent = "acesso não autorizado";
-      setStatus("Somente admin/secretaria podem acessar este painel.", "error");
+      setStatus("Somente diretor@einsteinhub.co e secretaria@einsteinhub.co podem acessar este painel.", "error");
       setTimeout(() => {
-        window.location.href = "dashboard.html";
+        window.location.href = adminLoginUrl();
       }, 1200);
       return false;
     }
@@ -906,6 +878,7 @@
   (async function init() {
     const hasAccess = await validateAdminAccess();
     if (!hasAccess) return;
+    stripFreshAdminLoginParam();
     setActiveTab("pedidos");
     await loadAdminRequests();
     await processClicksignReturn();

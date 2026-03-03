@@ -205,7 +205,6 @@ serve(async (req) => {
     let signingUrl = pickSigningUrl(signerDetails);
     let embeddedSignerKey = pickEmbeddedSignerKey(signerDetails);
     let signersList: Record<string, unknown> | null = null;
-    let usedSignerIdFallback = false;
 
     if (!signingUrl) {
       signersList = await clicksignRequest(`/envelopes/${envelopeId}/signers`, "GET");
@@ -223,7 +222,6 @@ serve(async (req) => {
 
     if (!signingUrl && !embeddedSignerKey) {
       // Fallback operacional: algumas contas retornam apenas o signer id.
-      usedSignerIdFallback = true;
       embeddedSignerKey = String(signerId);
       signingUrl = `${clicksignAppOrigin()}/notarial/widget/signatures/${encodeURIComponent(String(signerId))}`;
     }
@@ -249,14 +247,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({
       ok: true,
       signing_url: signingUrl || null,
-      embedded_signer_key: embeddedSignerKey || null,
-      debug: {
-        used_signer_id_fallback: usedSignerIdFallback,
-        signer_id: String(signerId),
-        envelope_id: envelopeId,
-        signer_details_keys: Object.keys(((signerDetails?.data || {}) as Record<string, unknown>)?.attributes || {}),
-        signers_list_count: Array.isArray((signersList?.data || null) as unknown) ? ((signersList?.data || []) as unknown[]).length : 0
-      }
+      embedded_signer_key: embeddedSignerKey || null
     }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" }
