@@ -270,16 +270,89 @@
       return;
     }
 
-    const { data, error } = await supabaseClient.storage
-      .from("id_autorizacao_enviados")
-      .createSignedUrl(path, 60 * 20);
+    const bucketName = "id_autorizacao_enviados";
 
-    if (error || !data?.signedUrl) {
-      setStatus(`Não foi possível abrir o documento: ${error?.message || "URL inválida"}`, "error");
+    function decodeSafe(value) {
+      try {
+        return decodeURIComponent(value);
+      } catch {
+        return value;
+      }
+    }
+
+    function normalizeStoragePath(rawValue) {
+      let normalized = String(rawValue || "").trim();
+      if (!normalized) return "";
+
+      if (normalized.startsWith("{") && normalized.endsWith("}")) {
+        try {
+          const parsed = JSON.parse(normalized);
+          normalized = String(parsed?.path || parsed?.url || parsed?.signedUrl || normalized);
+        } catch {
+          // mantém valor original
+        }
+      }
+
+      normalized = normalized.split("#")[0].split("?")[0].trim();
+      normalized = decodeSafe(normalized);
+
+      if (/^https?:\/\//i.test(normalized)) {
+        try {
+          const parsedUrl = new URL(normalized);
+          normalized = decodeSafe(parsedUrl.pathname || "");
+        } catch {
+          // mantém valor original
+        }
+      }
+
+      normalized = normalized.replace(/^\/+/, "");
+
+      const markers = [
+        `storage/v1/object/sign/${bucketName}/`,
+        `storage/v1/object/public/${bucketName}/`,
+        `storage/v1/object/authenticated/${bucketName}/`,
+        `storage/v1/object/${bucketName}/`,
+        `${bucketName}/`
+      ];
+
+      for (const marker of markers) {
+        const markerIndex = normalized.indexOf(marker);
+        if (markerIndex >= 0) {
+          normalized = normalized.slice(markerIndex + marker.length);
+          break;
+        }
+      }
+
+      return normalized.replace(/^\/+/, "").trim();
+    }
+
+    const rawPath = String(path || "").trim();
+    const candidates = Array.from(
+      new Set([
+        normalizeStoragePath(rawPath),
+        normalizeStoragePath(decodeSafe(rawPath)),
+        rawPath.replace(/^\/+/, "").split("?")[0].split("#")[0]
+      ].filter(Boolean))
+    );
+
+    for (const candidate of candidates) {
+      const { data, error } = await supabaseClient.storage
+        .from(bucketName)
+        .createSignedUrl(candidate, 60 * 20);
+
+      if (!error && data?.signedUrl) {
+        window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+        return;
+      }
+    }
+
+    if (/^https?:\/\//i.test(rawPath)) {
+      window.open(rawPath, "_blank", "noopener,noreferrer");
+      setStatus("Abrindo link direto do documento.", "ok");
       return;
     }
 
-    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+    setStatus("Não foi possível abrir o documento: Object not found ou caminho inválido.", "error");
   }
 
   async function uploadProducedPdf(requestRow, file) {
