@@ -29,6 +29,7 @@ jobs:
           test -n "$HOSTINGER_USER" || (echo "Missing HOSTINGER_USER" && exit 1)
           test -n "$HOSTINGER_PASSWORD" || (echo "Missing HOSTINGER_PASSWORD" && exit 1)
           test -n "$HOSTINGER_REMOTE_PATH" || (echo "Missing HOSTINGER_REMOTE_PATH" && exit 1)
+          set -x
           PROTOCOL="${HOSTINGER_PROTOCOL:-ftp}"
           REMOTE_URL="${PROTOCOL}://$HOSTINGER_HOST:$HOSTINGER_PORT"
           if [ "$PROTOCOL" = "ftp" ]; then
@@ -42,6 +43,9 @@ jobs:
           fi
           lftp -u "$HOSTINGER_USER","$HOSTINGER_PASSWORD" "$REMOTE_URL" <<EOF
           set cmd:fail-exit yes
+          set net:timeout 20
+          set net:max-retries 1
+          debug 3
           set ssl:verify-certificate no
           ${TLS_COMMANDS}
           mirror -R --delete --verbose \
