@@ -192,6 +192,9 @@ serve(async (req) => {
         new_status?: string;
         transition_options?: Record<string, unknown>;
         document_kind?: "id" | "produced";
+        produced_document_name?: string;
+        produced_document_mime?: string;
+        produced_document_base64?: string;
       };
       if (!body.action || !body.request_id) {
         return new Response(JSON.stringify({ ok: false, error: "Payload inválido." }), {
@@ -326,6 +329,58 @@ serve(async (req) => {
           });
         }
         return new Response(JSON.stringify({ ok: true, signed_url: signedUrl }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
+      if (body.action === "upload_produced_pdf") {
+        const fileName = String(body.produced_document_name || "documento.pdf").trim();
+        const contentType = String(body.produced_document_mime || "application/pdf").trim();
+        const base64 = String(body.produced_document_base64 || "").trim();
+        if (!base64) {
+          return new Response(JSON.stringify({ ok: false, error: "produced_document_base64 é obrigatório." }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
+          });
+        }
+
+        const safeName = fileName.replace(/[^a-zA-Z0-9_.-]+/g, "-");
+        const filePath = `produzidos/${body.request_id}/${Date.now()}-${safeName}`;
+        const binary = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+
+        const { error: uploadError } = await supabase.storage
+          .from("id_autorizacao_enviados")
+          .upload(filePath, binary, {
+            upsert: false,
+            contentType: contentType || "application/pdf"
+          });
+        if (uploadError) {
+          throw new Error(`Upload service-role falhou: ${uploadError.message}`);
+        }
+
+        const mergedPayload = {
+          ...((row.payload as Record<string, unknown>) || {}),
+          produced_document_path: filePath,
+          produced_document_name: fileName,
+          produced_document_uploaded_at: new Date().toISOString()
+        };
+
+        const { data: updatedRow, error: updateError } = await supabase
+          .from("lp_document_requests")
+          .update({ payload: mergedPayload })
+          .eq("id", body.request_id)
+          .select("*")
+          .single();
+        if (updateError || !updatedRow) {
+          throw new Error(updateError?.message || "Falha ao salvar payload do documento produzido.");
+        }
+
+        return new Response(JSON.stringify({
+          ok: true,
+          produced_document_path: filePath,
+          request: updatedRow
+        }), {
           status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" }
         });

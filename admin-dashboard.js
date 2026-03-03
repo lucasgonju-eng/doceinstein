@@ -473,11 +473,48 @@
         contentType: file.type || "application/pdf"
       });
 
-    if (error) {
+    if (!error) {
+      return filePath;
+    }
+
+    // Fallback service-role para ambientes com RLS de storage mais restrito.
+    const toBase64 = (blob) => new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = String(reader.result || "");
+        const base64 = result.includes(",") ? result.split(",")[1] : result;
+        resolve(base64);
+      };
+      reader.onerror = () => reject(reader.error || new Error("Falha ao ler arquivo para fallback."));
+      reader.readAsDataURL(blob);
+    });
+
+    const fileBase64 = await toBase64(file);
+    const headers = await functionAuthHeaders();
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/admin-diagnostic-requests`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        action: "upload_produced_pdf",
+        request_id: requestRow.id,
+        produced_document_name: file.name || "documento.pdf",
+        produced_document_mime: file.type || "application/pdf",
+        produced_document_base64: fileBase64
+      })
+    });
+    const rawBody = await response.text();
+    let parsedBody = {};
+    try {
+      parsedBody = rawBody ? JSON.parse(rawBody) : {};
+    } catch {
+      parsedBody = { raw: rawBody };
+    }
+
+    if (!response.ok || !parsedBody?.ok || !parsedBody?.produced_document_path) {
       throw new Error(`Falha no upload do PDF: ${error.message}`);
     }
 
-    return filePath;
+    return String(parsedBody.produced_document_path);
   }
 
   async function startClicksignSignature(requestRow, producedPath, producedName) {
@@ -886,27 +923,7 @@
         }
 
         const producedPath = await uploadProducedPdf(requestRow, file);
-        const mergedPayload = {
-          ...(requestRow.payload || {}),
-          produced_document_path: producedPath,
-          produced_document_name: file.name,
-          produced_document_uploaded_at: new Date().toISOString()
-        };
-
-        const { data: rowWithProducedDoc, error: producedDocError } = await supabaseClient
-          .from("lp_document_requests")
-          .update({
-            payload: mergedPayload
-          })
-          .eq("id", requestRow.id)
-          .select("*")
-          .single();
-
-        if (producedDocError) {
-          throw new Error(`Não foi possível salvar referência do PDF produzido: ${producedDocError.message}`);
-        }
-
-        const transitioned = await startClicksignSignature(rowWithProducedDoc, producedPath, file.name);
+        const transitioned = await startClicksignSignature(requestRow, producedPath, file.name);
         setStatus(
           `PDF enviado e pedido ${transitioned.protocol} movido para Assinaturas Pendentes (Clicksign iniciado).`,
           "ok"
