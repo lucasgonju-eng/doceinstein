@@ -440,12 +440,11 @@
   });
 
   btnSair.addEventListener("click", async function () {
+    window.location.href = "index.html";
     try {
       await supabaseClient.auth.signOut();
     } catch (error) {
       console.warn("Falha ao encerrar sessão no dashboard:", error);
-    } finally {
-      window.location.href = "index.html";
     }
   });
 
