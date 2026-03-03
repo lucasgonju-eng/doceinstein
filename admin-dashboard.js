@@ -84,6 +84,64 @@
     return date.toLocaleString("pt-BR");
   }
 
+  function onlyDigits(value) {
+    return String(value || "").replace(/\D+/g, "");
+  }
+
+  function isValidCpf(cpfValue) {
+    const cpf = onlyDigits(cpfValue);
+    if (!cpf || cpf.length !== 11) return false;
+    if (/^(\d)\1{10}$/.test(cpf)) return false;
+
+    let sum = 0;
+    for (let i = 0; i < 9; i += 1) sum += Number(cpf[i]) * (10 - i);
+    let check = (sum * 10) % 11;
+    if (check === 10) check = 0;
+    if (check !== Number(cpf[9])) return false;
+
+    sum = 0;
+    for (let i = 0; i < 10; i += 1) sum += Number(cpf[i]) * (11 - i);
+    check = (sum * 10) % 11;
+    if (check === 10) check = 0;
+    return check === Number(cpf[10]);
+  }
+
+  function collectIdDocAlerts(requestRow) {
+    const alerts = [];
+    const mime = String(requestRow?.id_document_mime || "").toLowerCase();
+    const path = String(requestRow?.id_document_path || "");
+    const pathLower = path.toLowerCase();
+    const size = Number(requestRow?.id_document_size || 0);
+    const cpf = String(requestRow?.cpf || "");
+    const rgDigits = onlyDigits(requestRow?.rg || "");
+
+    if (!path) alerts.push("Documento de identificação ausente.");
+
+    const allowedMimes = new Set(["application/pdf", "image/jpeg", "image/png", "image/webp"]);
+    if (mime && !allowedMimes.has(mime)) {
+      alerts.push(`Formato incomum (${mime}).`);
+    }
+
+    if (Number.isFinite(size) && size > 0) {
+      if (size < 40 * 1024) alerts.push("Arquivo muito pequeno (baixa legibilidade possível).");
+      if (size > 9.5 * 1024 * 1024) alerts.push("Arquivo muito grande (verificar integridade).");
+    }
+
+    if (cpf && !isValidCpf(cpf)) {
+      alerts.push("CPF com formato ou dígitos verificadores inválidos.");
+    }
+
+    if (rgDigits && rgDigits.length < 5) {
+      alerts.push("RG com poucos dígitos (verificar documento).");
+    }
+
+    if (pathLower && /(screenshot|screen-shot|print|captura|download|temp)/i.test(pathLower)) {
+      alerts.push("Nome do arquivo sugere print/captura (revisar autenticidade).");
+    }
+
+    return alerts;
+  }
+
   function adminRoleByEmail(email) {
     if (email === DIRECTOR_EMAIL) return "admin";
     return "secretaria";
@@ -550,6 +608,10 @@
     const rg = requestRow.rg || "n/d";
     const prazo = requestRow.payload?.prazo || "n/d";
     const profile = requestRow.form_type || "n/d";
+    const idDocAlerts = collectIdDocAlerts(requestRow);
+    const idDocAlertHtml = idDocAlerts.length
+      ? `<p class="stitch-admin-meta" style="color:#ffd39b;"><strong>Aviso de verificação:</strong> ${escapeHtml(idDocAlerts.join(" | "))}</p>`
+      : "";
 
     const openIdDocButton =
       `<button class="stitch-btn stitch-btn-ghost" type="button" data-action="open-id" data-request-id="${requestRow.id}">Abrir Documento Oficial de Identificação</button>`;
@@ -609,6 +671,7 @@
         <p class="stitch-admin-meta"><strong>Perfil:</strong> ${escapeHtml(profile)} • <strong>Documento:</strong> ${escapeHtml(documento)}</p>
         <p class="stitch-admin-meta"><strong>CPF:</strong> ${escapeHtml(cpf)} • <strong>RG:</strong> ${escapeHtml(rg)}</p>
         <p class="stitch-admin-meta"><strong>Prazo:</strong> ${escapeHtml(prazo)} • <strong>Criado em:</strong> ${escapeHtml(pedidoEm)}</p>
+        ${idDocAlertHtml}
         <div class="stitch-subpage-actions">
           ${openIdDocButton}
           ${openFinalDocButton}
@@ -732,6 +795,17 @@
 
     try {
       if (action === "approve-identity") {
+        const idDocAlerts = collectIdDocAlerts(requestRow);
+        if (idDocAlerts.length) {
+          const proceed = window.confirm(
+            `ATENCAO: este pedido tem ${idDocAlerts.length} alerta(s) de verificação:\n\n- ${idDocAlerts.join("\n- ")}\n\nDeseja continuar mesmo assim?`
+          );
+          if (!proceed) {
+            setStatus("Ação cancelada para revisão manual do documento.", "error");
+            return;
+          }
+        }
+
         const transitioned = await transitionRequestStatus(requestRow, "documento_em_producao", {
           producingStartedAt: new Date().toISOString(),
           historyNote: "Identidade validada pela secretaria/admin. Pedido movido para produção."
