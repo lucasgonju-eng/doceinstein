@@ -135,6 +135,23 @@ body.stitch-welcome-page{
   outline:none;
 }
 
+.stitch-home-footer-links{
+  position:absolute;
+  left:50%;
+  bottom:2.4%;
+  transform:translateX(-50%);
+  z-index:4;
+  display:flex;
+  gap:8px;
+}
+
+.stitch-home-footer-links .stitch-admin-footer-link{
+  position:static;
+  left:auto;
+  bottom:auto;
+  transform:none;
+}
+
 .stitch-subpage-root{
   width:min(calc(100vw - 16px), calc((100svh - 16px) * (768 / 1376)));
   aspect-ratio:768 / 1376;
