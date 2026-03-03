@@ -622,8 +622,15 @@
     let actionButtons = "";
     if (mode === "pedidos") {
       if (requestRow.status === "requerimento_em_analise") {
+        const analystNoteField = idDocAlerts.length
+          ? `<div class="stitch-field" style="width:100%;">
+              <label for="analystNote-${requestRow.id}">Parecer do analista (obrigatório quando houver alerta)</label>
+              <textarea id="analystNote-${requestRow.id}" rows="3" placeholder="Descreva por que o documento foi aceito mesmo com alerta." data-analyst-note="${requestRow.id}"></textarea>
+            </div>`
+          : "";
         actionButtons =
-          `<button class="stitch-btn stitch-btn-primary" type="button" data-action="approve-identity" data-request-id="${requestRow.id}">Confirmar identidade e iniciar produção</button>`;
+          `${analystNoteField}
+          <button class="stitch-btn stitch-btn-primary" type="button" data-action="approve-identity" data-request-id="${requestRow.id}">Confirmar identidade e iniciar produção</button>`;
       }
     }
 
@@ -796,7 +803,14 @@
     try {
       if (action === "approve-identity") {
         const idDocAlerts = collectIdDocAlerts(requestRow);
+        const card = actionButton.closest("[data-request-card]");
+        const analystNoteInput = card?.querySelector(`[data-analyst-note="${requestRow.id}"]`);
+        const analystNote = String(analystNoteInput?.value || "").trim();
+
         if (idDocAlerts.length) {
+          if (!analystNote) {
+            throw new Error("Preencha o parecer do analista para continuar com alertas de verificação.");
+          }
           const proceed = window.confirm(
             `ATENCAO: este pedido tem ${idDocAlerts.length} alerta(s) de verificação:\n\n- ${idDocAlerts.join("\n- ")}\n\nDeseja continuar mesmo assim?`
           );
@@ -806,9 +820,22 @@
           }
         }
 
+        const historyMetadata = {};
+        if (idDocAlerts.length) {
+          historyMetadata.document_alerts = idDocAlerts;
+          historyMetadata.analyst_note = analystNote;
+          historyMetadata.analyst_note_required = true;
+        } else if (analystNote) {
+          historyMetadata.analyst_note = analystNote;
+          historyMetadata.analyst_note_required = false;
+        }
+
         const transitioned = await transitionRequestStatus(requestRow, "documento_em_producao", {
           producingStartedAt: new Date().toISOString(),
-          historyNote: "Identidade validada pela secretaria/admin. Pedido movido para produção."
+          historyNote: idDocAlerts.length
+            ? "Identidade validada com alertas, mediante parecer do analista. Pedido movido para produção."
+            : "Identidade validada pela secretaria/admin. Pedido movido para produção.",
+          historyMetadata
         });
 
         await sendWorkflowEmail({
