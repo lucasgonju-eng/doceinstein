@@ -90,7 +90,7 @@ async function resolveDocumentSignedUrl(
     for (const candidate of candidates) {
       const { data, error } = await supabase.storage
         .from(bucketName)
-        .createSignedUrl(candidate, 60 * 20);
+        .createSignedUrl(candidate, 60 * 20, { download: true });
       if (!error && data?.signedUrl) return data.signedUrl;
     }
   }
@@ -110,7 +110,7 @@ async function resolveDocumentSignedUrl(
     if (bucketId && objectName) {
       const { data, error } = await supabase.storage
         .from(bucketId)
-        .createSignedUrl(objectName, 60 * 20);
+        .createSignedUrl(objectName, 60 * 20, { download: true });
       if (!error && data?.signedUrl) return data.signedUrl;
     }
   }

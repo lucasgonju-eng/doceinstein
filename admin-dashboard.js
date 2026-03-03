@@ -397,20 +397,38 @@
       ].filter(Boolean))
     );
 
+    function withDownloadParam(url) {
+      try {
+        const parsed = new URL(url, window.location.origin);
+        if (!parsed.searchParams.has("download")) {
+          parsed.searchParams.set("download", "1");
+        }
+        return parsed.toString();
+      } catch {
+        return url;
+      }
+    }
+
+    function openUrlSafely(url) {
+      const finalUrl = withDownloadParam(url);
+      const opened = window.open(finalUrl, "_blank", "noopener,noreferrer");
+      if (!opened) window.location.href = finalUrl;
+    }
+
     for (const candidate of candidates) {
       const { data, error } = await supabaseClient.storage
         .from(bucketName)
-        .createSignedUrl(candidate, 60 * 20);
+        .createSignedUrl(candidate, 60 * 20, { download: true });
 
       if (!error && data?.signedUrl) {
-        window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+        openUrlSafely(data.signedUrl);
         return;
       }
     }
 
     if (/^https?:\/\//i.test(rawPath)) {
-      window.open(rawPath, "_blank", "noopener,noreferrer");
-      setStatus("Abrindo link direto do documento.", "ok");
+      openUrlSafely(rawPath);
+      setStatus("Abrindo link direto do documento (download).", "ok");
       return;
     }
 
@@ -434,7 +452,7 @@
         parsedBody = { raw: rawBody };
       }
       if (response.ok && parsedBody?.ok && parsedBody?.signed_url) {
-        window.open(parsedBody.signed_url, "_blank", "noopener,noreferrer");
+        openUrlSafely(parsedBody.signed_url);
         return;
       }
     } catch (error) {
