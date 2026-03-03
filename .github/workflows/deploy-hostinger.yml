@@ -30,10 +30,17 @@ jobs:
           test -n "$HOSTINGER_PASSWORD" || (echo "Missing HOSTINGER_PASSWORD" && exit 1)
           test -n "$HOSTINGER_REMOTE_PATH" || (echo "Missing HOSTINGER_REMOTE_PATH" && exit 1)
           PROTOCOL="${HOSTINGER_PROTOCOL:-ftp}"
+          if [ "$PROTOCOL" = "ftp" ]; then
+            TLS_COMMANDS='set ftp:ssl-allow no'
+          elif [ "$PROTOCOL" = "ftps" ]; then
+            TLS_COMMANDS='set ftp:ssl-force true; set ftp:ssl-protect-data true'
+          else
+            TLS_COMMANDS='set sftp:auto-confirm yes'
+          fi
           lftp -u "$HOSTINGER_USER","$HOSTINGER_PASSWORD" "${PROTOCOL}://$HOSTINGER_HOST:$HOSTINGER_PORT" <<EOF
           set cmd:fail-exit yes
           set ssl:verify-certificate no
-          set ftp:ssl-allow yes
+          ${TLS_COMMANDS}
           mirror -R --delete --verbose \
             --exclude-glob .git/ \
             --exclude-glob .github/ \
