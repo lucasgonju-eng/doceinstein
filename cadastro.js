@@ -1,6 +1,7 @@
 (function () {
   const SUPABASE_URL = "https://ijyuinzducrtgerupcyk.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_CQADd4bRX_ZCEZkGaYNiMg_a3vlohsO";
+  const PUBLIC_APP_ORIGIN = "https://doceinstein.einsteinhub.co";
 
   const params = new URLSearchParams(window.location.search);
   const profileFromQuery = params.get("perfil");
@@ -35,6 +36,11 @@
 
   function dashboardUrl(profile) {
     return `dashboard.html?perfil=${encodeURIComponent(profile || "aluno")}`;
+  }
+
+  function authRedirectOrigin() {
+    // Magic link sempre volta para o domínio online publicado.
+    return PUBLIC_APP_ORIGIN;
   }
 
   function isSafeLocalRedirect(value) {
@@ -135,7 +141,7 @@
       email: email,
       options: {
         shouldCreateUser: true,
-        emailRedirectTo: `${window.location.origin}/nova-senha.html?perfil=${encodeURIComponent(perfil)}`,
+        emailRedirectTo: `${authRedirectOrigin()}/nova-senha.html?perfil=${encodeURIComponent(perfil)}`,
         data: {
           nome_completo: nomeCompleto,
           cpf: cpf,
