@@ -12,21 +12,34 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Deploy static app to Hostinger
-        uses: burnett01/rsync-deployments@7.0.2
-        with:
-          switches: >-
-            -avzr --delete
-            --exclude ".git/"
-            --exclude ".github/"
-            --exclude ".gitignore"
-            --exclude "supabase/"
-            --exclude "*.sql"
-            --exclude "README.txt"
-          path: ./
-          remote_path: ${{ secrets.HOSTINGER_REMOTE_PATH }}
-          remote_host: ${{ secrets.HOSTINGER_HOST }}
-          remote_port: ${{ secrets.HOSTINGER_PORT }}
-          remote_user: ${{ secrets.HOSTINGER_USER }}
-          remote_key: ${{ secrets.HOSTINGER_SSH_KEY }}
+      - name: Install lftp client
+        run: sudo apt-get update && sudo apt-get install -y lftp
+
+      - name: Deploy static app to Hostinger via SFTP
+        env:
+          HOSTINGER_HOST: ${{ secrets.HOSTINGER_HOST }}
+          HOSTINGER_PORT: ${{ secrets.HOSTINGER_PORT }}
+          HOSTINGER_USER: ${{ secrets.HOSTINGER_USER }}
+          HOSTINGER_PASSWORD: ${{ secrets.HOSTINGER_PASSWORD }}
+          HOSTINGER_REMOTE_PATH: ${{ secrets.HOSTINGER_REMOTE_PATH }}
+        run: |
+          test -n "$HOSTINGER_HOST" || (echo "Missing HOSTINGER_HOST" && exit 1)
+          test -n "$HOSTINGER_PORT" || (echo "Missing HOSTINGER_PORT" && exit 1)
+          test -n "$HOSTINGER_USER" || (echo "Missing HOSTINGER_USER" && exit 1)
+          test -n "$HOSTINGER_PASSWORD" || (echo "Missing HOSTINGER_PASSWORD" && exit 1)
+          test -n "$HOSTINGER_REMOTE_PATH" || (echo "Missing HOSTINGER_REMOTE_PATH" && exit 1)
+          lftp -u "$HOSTINGER_USER","$HOSTINGER_PASSWORD" "sftp://$HOSTINGER_HOST:$HOSTINGER_PORT" <<EOF
+          set sftp:auto-confirm yes
+          set cmd:fail-exit yes
+          set ssl:verify-certificate no
+          mirror -R --delete --verbose \
+            --exclude-glob .git/ \
+            --exclude-glob .github/ \
+            --exclude-glob .gitignore \
+            --exclude-glob supabase/ \
+            --exclude-glob *.sql \
+            --exclude-glob README.txt \
+            ./ "$HOSTINGER_REMOTE_PATH"
+          bye
+          EOF
 
