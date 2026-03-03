@@ -169,8 +169,11 @@ function timelineHtmlByEvent(eventType: string) {
       .map((step, index) => {
         const forceDoneForDigitalEmail =
           eventType === "documento_digital_enviado_email" && index === 5;
-        const isDone = index < activeIndex || forceDoneForDigitalEmail;
-        const isActive = index === activeIndex && !forceDoneForDigitalEmail;
+        const forceDoneForPhysicalEmail =
+          eventType === "documento_fisico_disponivel_secretaria" && index === 6;
+        const forcedDone = forceDoneForDigitalEmail || forceDoneForPhysicalEmail;
+        const isDone = index < activeIndex || forcedDone;
+        const isActive = index === activeIndex && !forcedDone;
         const bg = isActive ? "#e9a92d" : isDone ? "#2da969" : "#38476f";
         const color = isActive ? "#fff1bf" : isDone ? "#ffe6a1" : "#ffd977";
         return `
