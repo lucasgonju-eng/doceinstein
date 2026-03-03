@@ -802,6 +802,7 @@
 
     try {
       if (action === "approve-identity") {
+        setStatus("Aprovando identidade e iniciando produção...", "");
         const idDocAlerts = collectIdDocAlerts(requestRow);
         const card = actionButton.closest("[data-request-card]");
         const analystNoteInput = card?.querySelector(`[data-analyst-note="${requestRow.id}"]`);
@@ -846,7 +847,12 @@
           user_name: transitioned.requester_name,
           user_email: transitioned.requester_email,
           profile: transitioned.form_type,
-          status: transitioned.status
+          status: transitioned.status,
+          destination_emails: Array.from(new Set([
+            DIRECTOR_EMAIL,
+            SECRETARIA_EMAIL,
+            String(transitioned.requester_email || "").toLowerCase()
+          ].filter(Boolean)))
         });
 
         setStatus(`Pedido ${transitioned.protocol} atualizado para Documento em produção.`, "ok");
