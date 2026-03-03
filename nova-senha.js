@@ -1,6 +1,7 @@
 (function () {
   const SUPABASE_URL = "https://ijyuinzducrtgerupcyk.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_CQADd4bRX_ZCEZkGaYNiMg_a3vlohsO";
+  const PUBLIC_APP_ORIGIN = "https://doceinstein.einsteinhub.co";
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   const params = new URLSearchParams(window.location.search);
@@ -18,8 +19,12 @@
     if (type) statusMsg.classList.add(type);
   }
 
+  function appOrigin() {
+    return PUBLIC_APP_ORIGIN;
+  }
+
   function dashboardUrl(profile) {
-    return `dashboard.html?perfil=${encodeURIComponent(profile || "aluno")}`;
+    return `${appOrigin()}/dashboard.html?perfil=${encodeURIComponent(profile || "aluno")}`;
   }
 
   async function ensureSession() {
